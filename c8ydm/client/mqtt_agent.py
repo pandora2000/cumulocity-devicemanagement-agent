@@ -59,6 +59,7 @@ class Agent():
             'agent', 'main.loop.interval.seconds'))
         self.device_name = f'{self.configuration.getValue("agent", "name")}-{serial}'
         self.device_type = self.configuration.getValue('agent', 'type')
+        self.tedge = self.configuration.getBooleanValue('agent', 'tedge')
 
         self.stop_event = threading.Event()
         self.refresh_token_interval = 60
@@ -186,8 +187,9 @@ class Agent():
         self.__listeners = []
         self.__sensors = []
         # set Device Name
-        msg = SmartRESTMessage('s/us', '100', [self.device_name, self.device_type])
-        self.publishMessage(msg, 2, wait_for_publish=True)
+        msgId = '100' if self.tedge else '101'
+        vals = [self.device_name, self.device_type] if self.tedge else [self.serial, self.device_name, self.device_type]
+        self.publishMessage(SmartRESTMessage('s/us', msgId, vals), 2, wait_for_publish=True)
         #self.__client.publish(
         #    "s/us", "100,"+self.device_name+","+self.device_type, 2).wait_for_publish()
         #self.logger.info(f'Device published!')
@@ -246,7 +248,7 @@ class Agent():
         self.logger.info('Supported operations:')
         self.logger.info(self.__supportedOperations)
         supportedOperationsMsg = SmartRESTMessage(
-            's/us', 114, self.__supportedOperations)
+            's/us', 114, list(self.__supportedOperations))
         self.publishMessage(supportedOperationsMsg)
 
         # set required interval
@@ -264,14 +266,14 @@ class Agent():
             's/us', 110, [self.serial, self.model, '1.0'])
         self.publishMessage(modelMsg)
 
-        self.__client.subscribe('s/e')
-        self.__client.subscribe('s/ds')
-        self.__client.subscribe('s/dat')
+        self.__subscribe('s/e')
+        self.__subscribe('s/ds')
+        self.__subscribe('s/dat')
 
         # subscribe additional topics
         for xid in self.__supportedTemplates:
             self.logger.info('Subscribing to XID: %s', xid)
-            self.__client.subscribe('s/dc/' + xid)
+            self.__subscribe('s/dc/' + xid)
         if self.cert_auth:
             self.logger.info("Starting refresh token thread ")
             token_thread = threading.Thread(target=self.refresh_token)
@@ -302,6 +304,10 @@ class Agent():
         except Exception as ex:
             self.logger.error(ex)
 
+    def __subscribe(self, topic):
+        topic = f'c8y/{topic}' if self.tedge else topic
+        self.__client.subscribe(topic)
+
     def __on_message(self, client, userdata, msg):
         try:
             decoded = msg.payload.decode('utf-8')
@@ -310,9 +316,13 @@ class Agent():
                 msg.topic, messageParts[0], messageParts[1:])
             self.logger.debug('Received: topic=%s msg=%s',
                           message.topic, message.getMessage())
+            destSerial = messageParts[1]
             if message.messageId == '71':
                 self.token = message.values[0]
                 self.logger.info('New JWT Token received')
+            elif message.topic == 's/ds' and destSerial != self.serial:
+                self.logger.debug(f'ignoring an operation to {destSerial}')
+                return
             for listener in self.__listeners:
                 self.logger.debug('Trigger listener ' +
                               listener.__class__.__name__)
@@ -340,6 +350,11 @@ class Agent():
         self.logger.log(level, buf)
 
     def publishMessage(self, message, qos=0, wait_for_publish=False):
+        if self.tedge:
+            if message.values != [] and message.values[0] == '101':
+                message.topic = f'c8y/{message.topic}'
+            else:
+                message.topic = f'c8y/{message.topic}/{self.serial}'
         self.logger.debug(f'Send: topic={message.topic} msg={message.getMessage}')
         if self.__client is not None and self.__client.is_connected:
             if wait_for_publish:

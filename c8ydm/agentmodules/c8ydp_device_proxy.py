@@ -239,7 +239,7 @@ class DeviceProxy:
         self.logger.info(f'Starting Web Socket Connection...')
         self._web_socket = web_socket
         wst = threading.Thread(target=self._web_socket.run_forever, kwargs={
-            # 'ping_interval': 10, 'ping_timeout': 7, 'sslopt': {'ca_certs': certifi.where()}
+            'ping_interval': 10, 'ping_timeout': 7, 'sslopt': {'ca_certs': certifi.where()}
         })
         wst.daemon = True
         wst.name = f'WSTunnelThread-{self.connection_key[:8]}'

@@ -206,11 +206,10 @@ class DeviceProxy:
         """
         if connection_key is None:
             raise WebSocketFailureException('Connection Key is required to establish a WebSocket Connection!')
-        # if not self.base_url.startswith('http'):
-        #     self.base_url = f'https://{self.base_url}'
-        # base_url = self.base_url.replace(
-        #     'https', 'wss').replace('http', 'ws')
-        base_url = self.base_url
+        if not self.base_url.startswith('http'):
+            self.base_url = f'https://{self.base_url}'
+        base_url = self.base_url.replace(
+            'https', 'wss').replace('http', 'ws')
         headers = None
         if self.token:
             # Use Device Certificates
@@ -226,7 +225,6 @@ class DeviceProxy:
 
         url = f'{base_url}{self._websocket_device_endpoint}{connection_key}'
         self.logger.info(f'Connecting to WebSocket with URL {url} ...')
-        self.logger.info(f'websocat -H=\'{headers}\' \'{url}\'')
 
         # websocket.enableTrace(True) # Enable this for Debug Purpose only
         web_socket = websocket.WebSocketApp(url, header=[headers])
@@ -239,7 +237,8 @@ class DeviceProxy:
         self.logger.info(f'Starting Web Socket Connection...')
         self._web_socket = web_socket
         wst = threading.Thread(target=self._web_socket.run_forever, kwargs={
-            'ping_interval': 10, 'ping_timeout': 7, 'sslopt': {'ca_certs': certifi.where()}
+            'ping_interval': 10, 'ping_timeout': 7, 'sslopt': {'ca_certs': certifi.where()},
+            'http_proxy_host': '172.17.0.1', 'http_proxy_port': 3128, 'proxy_type': 'http'
         })
         wst.daemon = True
         wst.name = f'WSTunnelThread-{self.connection_key[:8]}'

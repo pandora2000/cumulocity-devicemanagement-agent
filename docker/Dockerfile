@@ -99,13 +99,8 @@ RUN pip3 install .
 #     python3-stdeb \
 #     python3-setuptools
 
-# for debug
-COPY ./config/agent.ini.txt /root/.cumulocity/agent.ini
-
-#ENV HTTP_PROXY=http://172.17.0.1:3128
-#ENV HTTPS_PROXY=http://172.17.0.1:3128
-
-# RUN apt-get update --fix-missing && apt-get install -y ufw
-
+RUN mkdir ./.vnc
+COPY ./docker/vncpasswd ./.vnc/passwd
+RUN chmod 600 ./.vnc/passwd
 COPY ./scripts ./scripts
 CMD scripts/start_docker.sh

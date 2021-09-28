@@ -1,4 +1,4 @@
-"""  
+"""
 Copyright (c) 2021 Software AG, Darmstadt, Germany and/or its licensors
 
 SPDX-License-Identifier: Apache-2.0
@@ -60,6 +60,7 @@ class Agent():
         self.device_name = f'{self.configuration.getValue("agent", "name")}-{serial}'
         self.device_type = self.configuration.getValue('agent', 'type')
         self.tedge = self.configuration.getBooleanValue('agent', 'tedge')
+        self.rest_url = self.configuration.getValue('rest', 'url')
 
         self.stop_event = threading.Event()
         self.refresh_token_interval = 60
@@ -164,7 +165,7 @@ class Agent():
         if self.cert_auth:
             self.logger.info("Stopping refresh token thread")
             self.stop_event.set()
-        
+
 
     def stop(self):
         msg = SmartRESTMessage('s/us', '400', ['c8y_AgentStopEvent', 'C8Y DM Agent stopped'])

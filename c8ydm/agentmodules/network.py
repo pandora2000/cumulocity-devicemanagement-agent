@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""  
+"""
 Copyright (c) 2021 Software AG, Darmstadt, Germany and/or its licensors
 
 SPDX-License-Identifier: Apache-2.0
@@ -24,6 +24,11 @@ from c8ydm.framework.modulebase import Initializer
 from c8ydm.framework.smartrest import SmartRESTMessage
 from c8ydm.core.geo_position_resolver import GeoPositionResolver
 
+proxies = {
+  'http': 'http://172.17.0.1:3128',
+  'https': 'http://172.17.0.1:3128',
+}
+
 class Network(Initializer):
     logger = logging.getLogger(__name__)
     net_message_id = 'dm100'
@@ -43,23 +48,20 @@ class Network(Initializer):
             netmask = str(computer.network_interface.subnet_mask)
             enabled = 1
             net_msg = SmartRESTMessage('s/uc/'+self.xid, self.net_message_id, [self.serial, ip, netmask, name, enabled, mac])
-        
+
         pub_ip = self.get_public_ip()
         lat_lng = self.geo_pos_resolver.get_pos_by_ip(pub_ip)
         pos_msg = None
         if lat_lng and lat_lng['lat'] is not None and lat_lng['lng'] is not None:
             pos_msg = SmartRESTMessage('s/us', self.pos_message_id, [lat_lng['lat'], lat_lng['lng']])
         return [net_msg, pos_msg]
-        
-    
+
+
     def get_public_ip(self):
         try:
-            ip = get('https://api.ipify.org').text
+            ip = get('https://api.ipify.org', proxies=proxies).text
             self.logger.debug(f'Public IP: {ip}')
             return ip
         except Exception as ex:
             self.logger.error(f'Error retrieving public IP: {ex}')
             return None
-        
-
-

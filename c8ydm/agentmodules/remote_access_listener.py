@@ -1,4 +1,4 @@
-"""  
+"""
 Copyright (c) 2021 Software AG, Darmstadt, Germany and/or its licensors
 
 SPDX-License-Identifier: Apache-2.0
@@ -22,7 +22,7 @@ from typing import List, Optional
 from requests.auth import HTTPBasicAuth
 from c8ydm.framework.modulebase import Listener
 from c8ydm.framework.smartrest import SmartRESTMessage
-from c8ydp.device_proxy import DeviceProxy, WebSocketFailureException
+from .c8ydp_device_proxy import DeviceProxy, WebSocketFailureException
 from c8ydm.utils import Configuration
 
 class RemoteAccessListener(Listener):
@@ -84,7 +84,7 @@ class RemoteAccessListener(Listener):
         if token is None and tenantuser is None and password is None:
             raise WebSocketFailureException(
                 'OAuth Token or tenantuser and password must be provided!')
-        base_url = config.getValue('mqtt', 'url')
+        base_url = config.getValue('remote_access', 'url')
          # Not sure which buffer size is good, starting with 16 KB (16 x 1024)
         #buffer_size = self.utils.config.getint('remote-connect', 'tcp.buffer.size')
         self._device_proxy = DeviceProxy(

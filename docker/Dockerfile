@@ -48,6 +48,13 @@ RUN apt-get update \
     && curl -sSL "https://github.com/docker/compose/releases/download/1.28.6/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose \
     && chmod +x /usr/local/bin/docker-compose
 
+RUN echo 'Acquire::http::Timeout "1000000";' > /etc/apt/apt.conf.d/101-http-timeout
+RUN echo 'Acquire::ftp::Timeout "1000000";' > /etc/apt/apt.conf.d/102-ftp-timeout
+RUN echo 'Acquire::Retries "1000000";' > /etc/apt/apt.conf.d/103-retry
+RUN apt-get update --fix-missing && apt-get install -y xfce4
+RUN apt-get update --fix-missing && apt-get install -y xfce4-goodies
+RUN apt-get update --fix-missing && apt-get install -y tightvncserver
+
 # Set root passwd for container
 RUN mkdir /var/run/sshd
 RUN echo 'root:test123#' | chpasswd
@@ -56,6 +63,9 @@ RUN sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/
 
 # Configure bash settings
 RUN echo "source /etc/profile.d/bash_completion.sh" >> "/root/.bashrc"
+
+# for debug
+RUN apt-get update --fix-missing && apt-get install -y iproute2
 
 WORKDIR /root
 
@@ -71,24 +81,31 @@ COPY ./c8ydm ./c8ydm
 RUN pip3 install .
 
 # Clean up unnecessary packages
-RUN apt-get -y --purge autoremove \
-    git \
-    build-essential \
-    debhelper \
-    dh-python \
-    python-docutils \
-    python-sphinx \
-    fakeroot \
-    bash-completion \
-    locales \
-    aptly \
-    python3-all \
-    python3-pip \
-    python3-dev \
-    python3-wheel \
-    python3-stdeb \
-    python3-setuptools
+# RUN apt-get -y --purge autoremove \
+#     git \
+#     build-essential \
+#     debhelper \
+#     dh-python \
+#     python-docutils \
+#     python-sphinx \
+#     fakeroot \
+#     bash-completion \
+#     locales \
+#     aptly \
+#     python3-all \
+#     python3-pip \
+#     python3-dev \
+#     python3-wheel \
+#     python3-stdeb \
+#     python3-setuptools
+
+# for debug
+COPY ./config/agent.ini.txt /root/.cumulocity/agent.ini
+
+#ENV HTTP_PROXY=http://172.17.0.1:3128
+#ENV HTTPS_PROXY=http://172.17.0.1:3128
+
+# RUN apt-get update --fix-missing && apt-get install -y ufw
 
 COPY ./scripts ./scripts
-
 CMD scripts/start_docker.sh

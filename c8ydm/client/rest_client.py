@@ -1,4 +1,4 @@
-"""  
+"""
 Copyright (c) 2021 Software AG, Darmstadt, Germany and/or its licensors
 
 SPDX-License-Identifier: Apache-2.0
@@ -21,13 +21,18 @@ import logging
 import json
 from base64 import b64encode
 
+proxies = {
+  'http': 'http://172.17.0.1:3128',
+  'https': 'http://172.17.0.1:3128',
+}
+
 class RestClient():
 
     def __init__(self, agent):
         self.logger = logging.getLogger(__name__)
         self.serial = agent.serial
         self.configuration = agent.configuration
-        self.base_url = agent.url
+        self.base_url = agent.rest_url
         if not self.base_url.startswith('http'):
             self.base_url = f'https://{self.base_url}'
         self.token = agent.token
@@ -52,7 +57,7 @@ class RestClient():
             headers = self.get_auth_header()
             headers['Content-Type'] ='application/json'
             self.logger.debug(f'Sending Request to url {url}')
-            response = requests.request("PUT", url, headers=headers, data = payload)
+            response = requests.request("PUT", url, headers=headers, data = payload, proxies=proxies)
             self.logger.debug('Response from request: ' + str(response.text))
             self.logger.debug('Response from request with code : ' + str(response.status_code))
             if response.status_code == 200 or response.status_code == 201:
@@ -63,7 +68,7 @@ class RestClient():
                 return False
         except Exception as e:
             self.logger.error('The following error occured: %s' % (str(e)))
-    
+
     def get_internal_id(self, external_id):
         try:
             #self.logger.info('Checking against indentity service what is internalID in C8Y')
@@ -72,7 +77,7 @@ class RestClient():
             headers = self.get_auth_header()
             headers['Content-Type'] ='application/json'
             headers['Accept'] = 'application/json'
-            response = requests.request("GET", url, headers=headers)
+            response = requests.request("GET", url, headers=headers, proxies=proxies)
             self.logger.debug('Response from request: ' + str(response.text))
             self.logger.debug('Response from request with code : ' + str(response.status_code))
             if response.status_code == 200:
@@ -99,7 +104,7 @@ class RestClient():
                 headers['Content-Type'] ='multipart/form-data'
                 headers['Accept'] ='application/json'
                 self.logger.debug(f'Sending Request to url {url}')
-                response = requests.request("POST", url, headers=headers, data=payload, files=file)
+                response = requests.request("POST", url, headers=headers, data=payload, files=file, proxies=proxies)
                 print("Responsestatuscode:"+ str(response.status_code))
                 print("RESPONSEMSG: "+str(response.text))
                 self.logger.debug('Response from request: ' + str(response.text))
@@ -115,14 +120,14 @@ class RestClient():
                     return False
             except Exception as e:
                 self.logger.error('The following error occured: %s' % (str(e)))
-    
+
     def get_all_dangling_operations(self, internal_id):
         try:
             url = f'{self.base_url}/devicecontrol/operations?status=EXECUTING&deviceId={internal_id}'
             headers = self.get_auth_header()
             headers['Content-Type'] ='application/json'
             headers['Accept'] = 'application/json'
-            response = requests.request("GET", url, headers=headers)
+            response = requests.request("GET", url, headers=headers, proxies=proxies)
             self.logger.debug('Response from request: ' + str(response.text))
             self.logger.debug('Response from request with code : ' + str(response.status_code))
             if response.status_code == 200:
@@ -139,7 +144,7 @@ class RestClient():
                 return None
         except Exception as e:
                 self.logger.error('The following error occured: %s' % (str(e)))
-    
+
     def set_operations_to_failed(self, operations):
         if len(operations) > 0:
             try:
@@ -152,7 +157,7 @@ class RestClient():
                         "status": "FAILED",
                         "failureReason": "Operation unexpectedly interrupted. Check logs for details"
                     }
-                    response = requests.request("PUT", url, headers=headers, data=json.dumps(payload))
+                    response = requests.request("PUT", url, headers=headers, data=json.dumps(payload), proxies=proxies)
                     self.logger.debug('Response from request: ' + str(response.text))
                     self.logger.debug('Response from request with code : ' + str(response.status_code))
                     if response.status_code == 200:
@@ -160,4 +165,4 @@ class RestClient():
                     else:
                         return False
             except Exception as e:
-                    self.logger.error('The following error occured: %s' % (str(e)))   
+                    self.logger.error('The following error occured: %s' % (str(e)))

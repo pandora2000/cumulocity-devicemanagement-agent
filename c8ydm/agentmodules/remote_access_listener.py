@@ -22,7 +22,7 @@ from typing import List, Optional
 from requests.auth import HTTPBasicAuth
 from c8ydm.framework.modulebase import Listener
 from c8ydm.framework.smartrest import SmartRESTMessage
-from .c8ydp_device_proxy import DeviceProxy, WebSocketFailureException
+from c8ydp.device_proxy import DeviceProxy, WebSocketFailureException
 from c8ydm.utils import Configuration
 
 class RemoteAccessListener(Listener):
@@ -77,11 +77,13 @@ class RemoteAccessListener(Listener):
         credentials = config.getCredentials()
 
         token = self.agent.token
-        tenantuser = credentials[0]+'/'+ credentials[1]
+        tenant = credentials[0]
+        user = credentials[1]
+        tenantuser = f'{tenant}/{user}'
         password = credentials[2]
         self.logger.info(f'Tenantuser {tenantuser} with password {password}')
 
-        if token is None and tenantuser is None and password is None:
+        if token is None and (tenant is None or user is None or password is None):
             raise WebSocketFailureException(
                 'OAuth Token or tenantuser and password must be provided!')
         base_url = config.getValue('remote_access', 'url')
